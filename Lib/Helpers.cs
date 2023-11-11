@@ -9,6 +9,7 @@ namespace Lib
     {
         public static int PORT_SERVER = 3000;
         public static int PORT_CLIENT = 49999;
+        public static int WINDOW_SIZE = 4;
 
 
     }
@@ -24,6 +25,9 @@ namespace Lib
         public Type Type { get; set; }
 
         public string Body { get; set; }
+
+        public int Sequence { get; set; }
+        public bool IsLast { get; set; }
 
         public override string ToString()
         {

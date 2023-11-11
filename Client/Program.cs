@@ -9,6 +9,10 @@ using System.Runtime.InteropServices;
 using Lib;
 using System.Threading;
 using System.Text.Json;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using static Lib.Lib;
 
 namespace Client
 {
@@ -19,16 +23,26 @@ namespace Client
         static int remotePort = 3000;
         static IPEndPoint localEP = new IPEndPoint(IPAddress.Any, localPort);
         static IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("127.0.0.1"), remotePort);
+        static List<Frame> framesToSend = new List<Frame>();
 
-        
+        static void Main(string[] args)
+        {
+            prepareFrames();
+            initStuff();
+            for (int i = 0; i < framesToSend.Count; i = i + WINDOW_SIZE)
+            {
+                Thread.Sleep(new TimeSpan(0, 0, 1));
+                sendClient.Send(framesToSend[i].GetAsBytes(), framesToSend[i].GetAsBytes().Length, remoteEP);
+            }
+            var b = false;
+        }
 
         private static void DataReceived(IAsyncResult ar)
         {
             UdpClient c = (UdpClient)ar.AsyncState;
             IPEndPoint receivedIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
-            Byte[] receivedBytes = c.EndReceive(ar, ref receivedIpEndPoint);
-            Console.WriteLine(receivedBytes.GetFrame());
-
+            var frameRecieved = c.EndReceive(ar, ref receivedIpEndPoint).GetFrame();
+            Console.WriteLine(frameRecieved.Body);
             c.BeginReceive(DataReceived, ar.AsyncState);
         }
 
@@ -41,21 +55,47 @@ namespace Client
             sendClient.BeginReceive(DataReceived, sendClient);
         }
 
-        static void Main(string[] args)
+
+        public static void prepareFrames()
         {
-            initStuff();
-            for (int i = 0; i < 20; i++)
+            string appName = Assembly.GetExecutingAssembly().GetName().Name;
+            var dir = new DirectoryInfo(Environment.CurrentDirectory);
+            while (dir.Name != appName)
             {
-                Thread.Sleep(new TimeSpan(0, 0, 1));
-                var frameBody = new Frame()
-                {
-                    Type = Lib.Type.send,
-                    Body = "client request" + i,
-                };
-                var data = frameBody.GetAsBytes();
-                sendClient.Send(data, data.Length, remoteEP);
+                dir = Directory.GetParent(dir.FullName);
             }
-            var b = false;
+            string target = $@"{dir}\COSC635_P2_DataSent.txt";
+
+            using (var _streamReader = new StreamReader(target))
+            {
+                var rawData = null as string;
+                var i = 1;
+                while ((rawData = _streamReader.ReadLine()) != null)
+                {
+                    if (i != 0)
+                    {
+                       
+                    }
+                    // header logic
+                    else
+                    {
+
+                    }
+
+                    var frame = new Frame()
+                    {
+                        Type = Lib.Type.send,
+                        Sequence = i,
+                        Body = rawData,
+                        IsLast = _streamReader.Peek() == -1
+                    };
+                    framesToSend.Add(frame);
+
+                    i++;
+                }
+
+                Console.WriteLine("finished reading file");
+            }
         }
     }
 }

@@ -17,6 +17,8 @@ namespace Server
         static IPEndPoint SERVER_IP_ENDPOINT = new IPEndPoint(IPAddress.Any, PORT_CLIENT);
         static int i = 0;
 
+        static List<Frame> framesRecieved = new List<Frame>();
+
         static void Main(string[] args)
         {
             while (true)
