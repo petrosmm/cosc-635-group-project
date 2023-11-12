@@ -23,18 +23,62 @@ namespace Client
         static int remotePort = 3000;
         static IPEndPoint localEP = new IPEndPoint(IPAddress.Any, localPort);
         static IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("127.0.0.1"), remotePort);
+        static List<Frame> framesTotal = new List<Frame>();
         static List<Frame> framesToSend = new List<Frame>();
+        static int i = 0;
+        static int number_user = new Random().Next(99);
+        static bool losePackets = true;
+        static TimeSpan timeSpanSecond = new TimeSpan(0, 0, 1);
+        static TimeSpan timeSpanSeconds = new TimeSpan(0, 0, 2);
+        static TimeSpan timespanMs = new TimeSpan(0, 0, 0, 0, 1);
 
         static void Main(string[] args)
         {
+            
             prepareFrames();
             initStuff();
-            for (int i = 0; i < framesToSend.Count; i = i + WINDOW_SIZE)
+
+            // send first only
+            if (true)
             {
-                Thread.Sleep(new TimeSpan(0, 0, 1));
-                sendClient.Send(framesToSend[i].GetAsBytes(), framesToSend[i].GetAsBytes().Length, remoteEP);
+                var data = framesTotal[i].GetAsBytes();
+                sendClient.Send(data, data.Length, remoteEP);
+                Console.WriteLine($"Sent packet: {framesTotal[i].ToString()}");
+                i++;
+                Thread.Sleep(timeSpanSeconds);
             }
-            var b = false;
+            else
+            {
+                SendOne(0);
+                if (false)
+                {
+                    while (i < framesTotal.Count)
+                    {
+                        if (true)
+                            Thread.Sleep(timespanMs);
+                        var random = new Random().Next(99);
+
+                        if (i == 0 || number_user >= random)
+                        {
+                            var data = framesTotal[i].GetAsBytes();
+                            sendClient.Send(data, data.Length, remoteEP);
+                            Console.WriteLine($"Sent packet: {framesTotal[i].ToString()}");
+                        }
+                        else
+                        {
+                            var x = $"Lost packet: {framesTotal[i].ToString()}";
+                            Console.WriteLine(x);
+                        }
+
+                        i++;
+                    }
+                }
+            }
+
+            if (i <= framesTotal.Count)
+            {
+                Console.ReadLine();
+            }
         }
 
         private static void DataReceived(IAsyncResult ar)
@@ -42,8 +86,58 @@ namespace Client
             UdpClient c = (UdpClient)ar.AsyncState;
             IPEndPoint receivedIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
             var frameRecieved = c.EndReceive(ar, ref receivedIpEndPoint).GetFrame();
-            Console.WriteLine(frameRecieved.Body);
+
+            // correction
+            if (frameRecieved.Type == Lib.Type.request)
+            {
+                i = frameRecieved.Sequence;
+                Console.WriteLine($"{frameRecieved.ToString()}|***");
+            }
+            else if (frameRecieved.Type == Lib.Type.receive)
+            {
+                Console.WriteLine(frameRecieved.ToString());
+                var sequenceNumber = frameRecieved.Sequence;
+                i = sequenceNumber + 1;
+            }
+
+            var sendResult = SendOne(i);
+            while (sendResult == false)
+            {
+                sendResult = SendOne(i);
+            }
+
             c.BeginReceive(DataReceived, ar.AsyncState);
+        }
+
+        public static bool SendOne(int v)
+        {
+            var result = false;
+            if (i < framesTotal.Count)
+            {
+                if (true)
+                    Thread.Sleep(timeSpanSeconds);
+                var random = new Random().Next(99);
+
+                if (number_user < random)
+                {
+                    var x = $"Lost packet: {framesTotal[i].ToString()}";
+                    Console.WriteLine(x);
+                    result = false;
+                }
+                else
+                {
+                    var data = framesTotal[i].GetAsBytes();
+                    sendClient.Send(data, data.Length, remoteEP);
+                    Console.WriteLine($"Sent packet: {data.GetFrame().ToString()}");
+                    result = true;
+                    i++;
+                }
+
+               // i++;
+                return result;
+            }
+
+            return true;
         }
 
         private static void initStuff()
@@ -64,17 +158,17 @@ namespace Client
             {
                 dir = Directory.GetParent(dir.FullName);
             }
-            string target = $@"{dir}\COSC635_P2_DataSent.txt";
+            string target = $@"{dir}\COSC635_P2_short.txt";
 
             using (var _streamReader = new StreamReader(target))
             {
                 var rawData = null as string;
-                var i = 1;
+                var i = 0;
                 while ((rawData = _streamReader.ReadLine()) != null)
                 {
                     if (i != 0)
                     {
-                       
+
                     }
                     // header logic
                     else
@@ -90,6 +184,7 @@ namespace Client
                         IsLast = _streamReader.Peek() == -1
                     };
                     framesToSend.Add(frame);
+                    framesTotal.Add(frame);
 
                     i++;
                 }
