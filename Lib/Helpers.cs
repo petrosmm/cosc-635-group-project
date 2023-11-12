@@ -92,11 +92,15 @@ namespace Lib
             {
                 var windowRelative = sequence < WINDOW_SIZE 
                     ? WINDOW_SIZE
-                    : sequence - WINDOW_SIZE;
+                    : sequence - (WINDOW_SIZE * 2);
+
+                var startSize = sequence < WINDOW_SIZE
+                    ? 0
+                    : sequence;
 
                 if (windowRelative > -1)
                 {
-                    for (int i = 0; i < windowRelative; i++)
+                    for (int i = startSize; i < windowRelative; i++)
                     {
                         var item = input.FirstOrDefault(p => p.Sequence == i);
                         if (item == null)

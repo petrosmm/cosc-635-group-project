@@ -87,7 +87,7 @@ namespace Client
             IPEndPoint receivedIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
             var frameRecieved = c.EndReceive(ar, ref receivedIpEndPoint).GetFrame();
 
-            // correction
+            // sequence correction
             if (frameRecieved.Type == Lib.Type.request)
             {
                 i = frameRecieved.Sequence;
@@ -116,8 +116,9 @@ namespace Client
             {
                 if (true)
                     Thread.Sleep(timeSpanSeconds);
-                var random = new Random().Next(99);
+                var random = new Random().Next(0, 99);
 
+                // if we fail random
                 if (number_user < random)
                 {
                     var x = $"Lost packet: {framesTotal[i].ToString()}";
