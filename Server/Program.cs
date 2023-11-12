@@ -27,6 +27,8 @@ namespace Server
 
    
             }
+
+            Debugger.Break();
         }
 
         static void startAndContinueListening()
@@ -52,8 +54,6 @@ namespace Server
             }
             else
             {
-                //      var framePreviousSequence = frameRecieved.Sequence - 1;
-                //     if (frameRecieved.IsZeroFrame() || (framePreviousSequence <= framesRecieved.Count()))
                 {
                     framesRecieved.Add(frameRecieved);
                     Console.WriteLine($"INN {frameRecieved.ToString()}");
@@ -65,7 +65,6 @@ namespace Server
                     };
 
                     serverUDP.Send(dataSend.GetAsBytes(), dataSend.GetAsBytes().Length, SERVER_IP_ENDPOINT);
-                    return;
                 }
             }
         }

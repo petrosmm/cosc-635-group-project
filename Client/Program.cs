@@ -13,6 +13,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using static Lib.Lib;
+using System.Text.RegularExpressions;
 
 namespace Client
 {
@@ -26,7 +27,7 @@ namespace Client
         static List<Frame> framesTotal = new List<Frame>();
         static List<Frame> framesToSend = new List<Frame>();
         static int i = 0;
-        static int number_user = new Random().Next(99);
+        static int number_user = Lib.Lib.GenerateRandom(new Random());
         static bool losePackets = true;
         static TimeSpan timeSpanSecond = new TimeSpan(0, 0, 1);
         static TimeSpan timeSpanSeconds = new TimeSpan(0, 0, 2);
@@ -34,53 +35,113 @@ namespace Client
 
         static void Main(string[] args)
         {
-            
+
             prepareFrames();
             initStuff();
 
             // send first only
-            if (true)
+            var data = framesTotal[i].GetAsBytes();
+            sendClient.Send(data, data.Length, remoteEP);
+            Console.WriteLine($"Sent packet: {framesTotal[i].ToString()}");
+            i++;
+            Thread.Sleep(timeSpanSeconds);
+
+            while (true)
             {
-                var data = framesTotal[i].GetAsBytes();
-                sendClient.Send(data, data.Length, remoteEP);
-                Console.WriteLine($"Sent packet: {framesTotal[i].ToString()}");
-                i++;
-                Thread.Sleep(timeSpanSeconds);
-            }
-            else
-            {
-                SendOne(0);
-                if (false)
+                try
                 {
-                    while (i < framesTotal.Count)
+                    if (sendClient.Available > 0) // Only read if we have some data 
+                    {                           // queued in the network buffer. 
+                        var frameRecieved = sendClient.Receive(ref localEP).GetFrame();
+
+                        // sequence correction
+                        if (frameRecieved.Type == Lib.Type.request)
+                        {
+                            i = frameRecieved.Sequence;
+                            Console.WriteLine($"{frameRecieved.ToString()}|***");
+                        }
+                        else if (frameRecieved.Type == Lib.Type.receive)
+                        {
+                            Console.WriteLine(frameRecieved.ToString());
+                            var sequenceNumber = frameRecieved.Sequence;
+                            i = sequenceNumber + 1;
+                        }
+
+                        SendOne(i);
+                    }
+                    else
                     {
-                        if (true)
-                            Thread.Sleep(timespanMs);
-                        var random = new Random().Next(99);
-
-                        if (i == 0 || number_user >= random)
-                        {
-                            var data = framesTotal[i].GetAsBytes();
-                            sendClient.Send(data, data.Length, remoteEP);
-                            Console.WriteLine($"Sent packet: {framesTotal[i].ToString()}");
-                        }
-                        else
-                        {
-                            var x = $"Lost packet: {framesTotal[i].ToString()}";
-                            Console.WriteLine(x);
-                        }
-
-                        i++;
+                        SendOne(i);
+                        Thread.Sleep(Lib.Lib.GetTimeSpanMs(25 * WINDOW_SIZE));
                     }
                 }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.InnerException?.Message ?? ex.Message);
+                }
+
+                // old logic
+                if (false)
+                    Thread.Sleep(timeSpanSeconds);
             }
 
             if (i <= framesTotal.Count)
             {
-                Console.ReadLine();
+                Debugger.Break();
             }
         }
 
+        public static bool SendOne(int v)
+        {
+            var result = false;
+            if (i < framesTotal.Count)
+            {
+                // old logic
+                if (false)
+                    Thread.Sleep(timeSpanSeconds);
+                var random = Lib.Lib.GenerateRandom(new Random());
+
+                // if we fail random
+                if (number_user < random)
+                {
+                    var x = $"Lost packet: {framesTotal[i].ToString()}";
+                    Console.WriteLine(x);
+                    result = false;
+                    // new logic, do we need this?
+                    // i++;
+                }
+                else
+                {
+                    var data = framesTotal[i].GetAsBytes();
+                    sendClient.Send(data, data.Length, remoteEP);
+                    Console.WriteLine($"Sent packet: {data.GetFrame().ToString()}");
+                    result = true;
+                    i++;
+                }
+
+                // i++;
+                return result;
+            }
+
+            return true;
+        }
+
+        private static void initStuff()
+        {
+
+            sendClient.ExclusiveAddressUse = false;
+            sendClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            sendClient.Client.Bind(localEP);
+
+            // old logic
+            if (false)
+                sendClient.BeginReceive(DataReceived, sendClient);
+        }
+
+        /// <summary>
+        /// old logic
+        /// </summary>
+        /// <param name="ar"></param>
         private static void DataReceived(IAsyncResult ar)
         {
             UdpClient c = (UdpClient)ar.AsyncState;
@@ -107,47 +168,6 @@ namespace Client
             }
 
             c.BeginReceive(DataReceived, ar.AsyncState);
-        }
-
-        public static bool SendOne(int v)
-        {
-            var result = false;
-            if (i < framesTotal.Count)
-            {
-                if (true)
-                    Thread.Sleep(timeSpanSeconds);
-                var random = new Random().Next(0, 99);
-
-                // if we fail random
-                if (number_user < random)
-                {
-                    var x = $"Lost packet: {framesTotal[i].ToString()}";
-                    Console.WriteLine(x);
-                    result = false;
-                }
-                else
-                {
-                    var data = framesTotal[i].GetAsBytes();
-                    sendClient.Send(data, data.Length, remoteEP);
-                    Console.WriteLine($"Sent packet: {data.GetFrame().ToString()}");
-                    result = true;
-                    i++;
-                }
-
-               // i++;
-                return result;
-            }
-
-            return true;
-        }
-
-        private static void initStuff()
-        {
-
-            sendClient.ExclusiveAddressUse = false;
-            sendClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            sendClient.Client.Bind(localEP);
-            sendClient.BeginReceive(DataReceived, sendClient);
         }
 
 

@@ -14,6 +14,16 @@ namespace Lib
         public static int PORT_SERVER = 3000;
         public static int PORT_CLIENT = 49999;
         public static int WINDOW_SIZE = 4;
+
+        public static TimeSpan GetTimeSpanMs(int ms)
+        {
+            return new TimeSpan(0, 0, 0, 0, 500);
+        }
+
+        public static int GenerateRandom(Random rng)
+        {
+            return rng.Next(0, 100);
+        }
     }
 
     public enum Type {
@@ -94,13 +104,25 @@ namespace Lib
                     ? WINDOW_SIZE
                     : sequence - (WINDOW_SIZE * 2);
 
-                var startSize = sequence < WINDOW_SIZE
-                    ? 0
-                    : sequence;
+                if(sequence > input.Count())
+                {
+
+                }
+
+                var start = 0;
+                if (input.Count() < WINDOW_SIZE)
+                {
+                    start = 0;
+                    windowRelative = WINDOW_SIZE * 2;
+                }
+                else
+                {
+
+                }
 
                 if (windowRelative > -1)
                 {
-                    for (int i = startSize; i < windowRelative; i++)
+                    for (int i = start; i < windowRelative; i++)
                     {
                         var item = input.FirstOrDefault(p => p.Sequence == i);
                         if (item == null)
