@@ -25,9 +25,8 @@ namespace Client
         static IPEndPoint localEP = new IPEndPoint(IPAddress.Any, localPort);
         static IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("127.0.0.1"), remotePort);
         static List<Frame> framesTotal = new List<Frame>();
-        static List<Frame> framesToSend = new List<Frame>();
         static int i = 0;
-        static int number_user = Lib.Lib.GenerateRandom(new Random());
+        static int numberUser = 20; //?? Lib.Lib.GenerateRandom(Lib.Lib.GetRandom());
         static bool losePackets = true;
         static TimeSpan timeSpanSecond = new TimeSpan(0, 0, 1);
         static TimeSpan timeSpanSeconds = new TimeSpan(0, 0, 2);
@@ -35,8 +34,7 @@ namespace Client
 
         static void Main(string[] args)
         {
-
-            prepareFrames();
+            PrepareFrames();
             initStuff();
 
             // send first only
@@ -83,11 +81,11 @@ namespace Client
                 // old logic
                 if (false)
                     Thread.Sleep(timeSpanSeconds);
-            }
 
-            if (i <= framesTotal.Count)
-            {
-                Debugger.Break();
+                if (i == framesTotal.Count)
+                {
+                    Debugger.Break();
+                }
             }
         }
 
@@ -99,16 +97,16 @@ namespace Client
                 // old logic
                 if (false)
                     Thread.Sleep(timeSpanSeconds);
-                var random = Lib.Lib.GenerateRandom(new Random());
+                var random = Lib.Lib.GenerateRandom(GetRandom());
 
                 // if we fail random
-                if (number_user < random)
+                if (random < numberUser)
                 {
                     var x = $"Lost packet: {framesTotal[i].ToString()}";
                     Console.WriteLine(x);
                     result = false;
                     // new logic, do we need this?
-                    // i++;
+                    i++;
                 }
                 else
                 {
@@ -171,7 +169,7 @@ namespace Client
         }
 
 
-        public static void prepareFrames()
+        public static void PrepareFrames()
         {
             string appName = Assembly.GetExecutingAssembly().GetName().Name;
             var dir = new DirectoryInfo(Environment.CurrentDirectory);
@@ -180,7 +178,6 @@ namespace Client
                 dir = Directory.GetParent(dir.FullName);
             }
             string target = $@"{dir}\COSC635_P2_short.txt";
-
             using (var _streamReader = new StreamReader(target))
             {
                 var rawData = null as string;
@@ -204,7 +201,6 @@ namespace Client
                         Body = rawData,
                         IsLast = _streamReader.Peek() == -1
                     };
-                    framesToSend.Add(frame);
                     framesTotal.Add(frame);
 
                     i++;

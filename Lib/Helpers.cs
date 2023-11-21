@@ -11,6 +11,7 @@ namespace Lib
 {
     public static class Lib
     {
+        static Random random = new Random();
         public static int PORT_SERVER = 3000;
         public static int PORT_CLIENT = 49999;
         public static int WINDOW_SIZE = 4;
@@ -22,7 +23,12 @@ namespace Lib
 
         public static int GenerateRandom(Random rng)
         {
-            return rng.Next(0, 100);
+            return rng.Next(0, 99);
+        }  
+
+        public static Random GetRandom()
+        {
+            return random;
         }
     }
 
@@ -75,18 +81,10 @@ namespace Lib
             return s;
         }
 
-        public static bool CheckIfMeetsCriteria(this List<Frame> input, int sequence = 1)
+        public static List<Frame> GetFrames(this byte[] input)
         {
-            var result = false;
-            var @continue = true;
-            var sequenceRef = sequence;
-            var windowRelative = sequence - WINDOW_SIZE;
-            while (windowRelative > WINDOW_SIZE && @continue)
-            {
-                
-            }
-
-            return result;
+            var s = JsonSerializer.Deserialize<List<Frame>>(GetTextFromBytes(input));
+            return s;
         }
 
         public static bool IsZeroFrame(this Frame frame)
