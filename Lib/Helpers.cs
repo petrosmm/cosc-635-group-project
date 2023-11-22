@@ -106,11 +106,6 @@ namespace Lib
                         ? theoryNumber
                         : WINDOW_SIZE * 2;
 
-                if(sequence > input.Count())
-                {
-
-                }
-
                 var start = 0;
                 if (input.Count() < WINDOW_SIZE)
                 {

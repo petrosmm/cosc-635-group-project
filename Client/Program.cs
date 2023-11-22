@@ -20,10 +20,8 @@ namespace Client
     internal class Program
     {
         static readonly UdpClient sendClient = new UdpClient();
-        static int localPort = 49999;
-        static int remotePort = 3000;
-        static IPEndPoint localEP = new IPEndPoint(IPAddress.Any, localPort);
-        static IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("127.0.0.1"), remotePort);
+        static IPEndPoint localEP = new IPEndPoint(IPAddress.Any, PORT_CLIENT);
+        static IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("127.0.0.1"), PORT_SERVER);
         static List<Frame> framesTotal = new List<Frame>();
         static int i = 0;
         static int numberUser = (int?)20 ?? Lib.Lib.GenerateRandom(Lib.Lib.GetRandom());
@@ -176,7 +174,9 @@ namespace Client
             {
                 dir = Directory.GetParent(dir.FullName);
             }
-            string target = $@"{dir}\COSC635_P2_short.txt";
+            var paths = new string[] { dir.ToString(), "COSC635_P2_short.txt" };
+            var target = Path.Combine(paths);
+            Console.WriteLine(target);
             using (var _streamReader = new StreamReader(target))
             {
                 var rawData = null as string;
