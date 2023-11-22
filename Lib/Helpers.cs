@@ -98,9 +98,13 @@ namespace Lib
 
             if (sequence > 0)
             {
-                var windowRelative = sequence < WINDOW_SIZE 
-                    ? WINDOW_SIZE
-                    : sequence - (WINDOW_SIZE * 2);
+                var isSequenceLessThanWindow = sequence < WINDOW_SIZE;
+                var theoryNumber = sequence - (WINDOW_SIZE * 2);
+                var windowRelative = isSequenceLessThanWindow
+                    ? sequence
+                    : theoryNumber > 0
+                        ? theoryNumber
+                        : WINDOW_SIZE * 2;
 
                 if(sequence > input.Count())
                 {
@@ -111,16 +115,26 @@ namespace Lib
                 if (input.Count() < WINDOW_SIZE)
                 {
                     start = 0;
-                    windowRelative = WINDOW_SIZE * 2;
                 }
                 else
                 {
-
+                    var unknownNumber = sequence - WINDOW_SIZE;
+                    if (unknownNumber > -1)
+                    {
+                        start = Math.Min(unknownNumber, sequence);
+                    } else
+                    {
+                        start = Math.Max(unknownNumber, sequence);
+                        if (start < 0)
+                        {
+                            start = 0;
+                        }
+                    }                    
                 }
 
                 if (windowRelative > -1)
                 {
-                    for (int i = start; i < windowRelative; i++)
+                    for (int i = 0; i < windowRelative; i++)
                     {
                         var item = input.FirstOrDefault(p => p.Sequence == i);
                         if (item == null)

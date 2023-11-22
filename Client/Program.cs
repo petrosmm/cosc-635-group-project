@@ -26,7 +26,7 @@ namespace Client
         static IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("127.0.0.1"), remotePort);
         static List<Frame> framesTotal = new List<Frame>();
         static int i = 0;
-        static int numberUser = 20; //?? Lib.Lib.GenerateRandom(Lib.Lib.GetRandom());
+        static int numberUser = (int?)20 ?? Lib.Lib.GenerateRandom(Lib.Lib.GetRandom());
         static bool losePackets = true;
         static TimeSpan timeSpanSecond = new TimeSpan(0, 0, 1);
         static TimeSpan timeSpanSeconds = new TimeSpan(0, 0, 2);
@@ -102,22 +102,21 @@ namespace Client
                 // if we fail random
                 if (random < numberUser)
                 {
-                    var x = $"Lost packet: {framesTotal[i].ToString()}";
-                    Console.WriteLine(x);
+                    var message = $"Lost packet: {framesTotal[i].ToString()} to {framesTotal[i].ToString()}";
+                    Console.WriteLine(message);
                     result = false;
-                    // new logic, do we need this?
-                    i++;
+                    Thread.Sleep(Lib.Lib.GetTimeSpanMs(25 * WINDOW_SIZE));
                 }
                 else
                 {
                     var data = framesTotal[i].GetAsBytes();
                     sendClient.Send(data, data.Length, remoteEP);
                     Console.WriteLine($"Sent packet: {data.GetFrame().ToString()}");
-                    result = true;
-                    i++;
+                    result = true;                  
+                    Thread.Sleep(Lib.Lib.GetTimeSpanMs(25 * WINDOW_SIZE));
                 }
 
-                // i++;
+                i++;
                 return result;
             }
 

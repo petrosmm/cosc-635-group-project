@@ -55,7 +55,8 @@ namespace Server
             else
             {
                 {
-                    framesRecieved.Add(frameRecieved);
+                    if (framesRecieved.Any(p => p.Sequence == frameRecieved.Sequence) == false)
+                        framesRecieved.Add(frameRecieved);
                     Console.WriteLine($"INN {frameRecieved.ToString()}");
                     dataSend = new Frame()
                     {
