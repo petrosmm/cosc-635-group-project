@@ -25,7 +25,6 @@ namespace Client
         static List<Frame> framesTotal = new List<Frame>();
         static int i = 0;
         static int numberUser = (int?)20 ?? Lib.Lib.GenerateRandom(Lib.Lib.GetRandom());
-        static bool losePackets = true;
         static TimeSpan timeSpanSecond = new TimeSpan(0, 0, 1);
         static TimeSpan timeSpanSeconds = new TimeSpan(0, 0, 2);
         static TimeSpan timespanMs = new TimeSpan(0, 0, 0, 0, 1);
@@ -61,6 +60,10 @@ namespace Client
                             Console.WriteLine(frameRecieved.ToString());
                             var sequenceNumber = frameRecieved.Sequence;
                             i = sequenceNumber + 1;
+                        }
+                        else if (frameRecieved.Type == Lib.Type.receive)
+                        {
+                            break;
                         }
 
                         SendOne(i);
@@ -100,10 +103,11 @@ namespace Client
                 // if we fail random
                 if (random < numberUser)
                 {
-                    var message = $"Lost packet: {framesTotal[i].ToString()} to {framesTotal[i].ToString()}";
+                    //  to {framesTotal[i].ToString()}
+                    var message = $"\r\nLost packet: {framesTotal[i].ToString()}\r\n";
                     Console.WriteLine(message);
                     result = false;
-                    Thread.Sleep(Lib.Lib.GetTimeSpanMs(25 * WINDOW_SIZE));
+                    Thread.Sleep(Lib.Lib.GetTimeSpanMs(200));
                 }
                 else
                 {
@@ -200,6 +204,7 @@ namespace Client
                         Body = rawData,
                         IsLast = _streamReader.Peek() == -1
                     };
+
                     framesTotal.Add(frame);
 
                     i++;
