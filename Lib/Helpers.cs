@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -14,12 +15,23 @@ namespace Lib
         static Random random = new Random();
         public static int PORT_SERVER = 3000;
         public static int PORT_CLIENT = 49999;
-        public static int WINDOW_SIZE = 10;
+        public static int WINDOW_SIZE = 100;
+        public static int WINDOW_SIZE_SEND = 
+            WINDOW_SIZE - 1 <= 0 
+            ? 1 : WINDOW_SIZE - 1;
+        public static int WINDOW_SIZE_PADDING = 2;
 
         public static TimeSpan GetTimeSpanMs(int ms)
         {
             return new TimeSpan(0, 0, 0, 0, 500);
         }
+
+
+        public static TimeSpan GetTimeSpanSeconds(int s = 1)
+        {
+            return new TimeSpan(0, 0, 0, s);
+        }
+
 
         public static int GenerateRandom(Random rng)
         {
@@ -37,7 +49,7 @@ namespace Lib
         send = 1,
         receive = 2,
         request = 3,
-        finish
+        special= 4
     }
 
     public class Frame
@@ -50,14 +62,10 @@ namespace Lib
 
         public bool IsLast { get; set; }
 
-        public override string ToString()
-        {
-            return $"{Type.ToString()}|{Sequence}|{(Body.Count() < 20 ? Body : Body.Substring(0, 20) + "...")}";
-        }
-
         public string ToStringAlt()
         {
-            return $"{Type.ToString()}|{Sequence}";
+            return $"{Type.ToString()}|{Sequence}|{(Body.Count() < 20 ? Body : Body.Substring(0, 20) + "...")}" 
+                ?? $"{Type.ToString()}|{Sequence}";
         }
     }
 
@@ -76,6 +84,28 @@ namespace Lib
         }
 
         public static byte[] GetAsBytes(this Frame input)
+        {
+            var s = Encoding.ASCII.GetBytes(JsonSerializer.Serialize(input));
+            return s;
+        }
+
+        public static string ToStringAlt(this List<Frame> input)
+        {
+            var frameStart = input.FirstOrDefault();
+
+            var frameEnd = input.LastOrDefault();
+
+            return $"frame {frameStart.Sequence} to frame {frameEnd.Sequence}";
+        }
+
+        public static int GetSequenceNumberTrailer(this List<Frame> input)
+        {
+            var frameEnd = input.LastOrDefault();
+
+            return frameEnd.Sequence;
+        }
+
+        public static byte[] GetAsBytes(this List<Frame> input)
         {
             var s = Encoding.ASCII.GetBytes(JsonSerializer.Serialize(input));
             return s;
@@ -103,50 +133,43 @@ namespace Lib
             return start < 0 ? 0 : start;
         }
 
-        public static int HasIssueWithPriors(this List<Frame> input, int sequence = 0, List<Frame> framesRecieved = null)
+        public static int HasIssueWithPriors(this List<Frame> framesCurrent, List<Frame> framesIncoming = null)
         {
-            if (sequence > 0)
+            var framesCurrentCount = framesCurrent.Count();
+            var frameRefStart = framesIncoming.FirstOrDefault();
+            var frameRefEnd = framesIncoming.LastOrDefault();
+            var sequenceStart = frameRefStart.Sequence;
+            if (sequenceStart > 0)
             {
                 var start = 0;
                 var windowRelative = 0;
 
-                if (sequence <= 20)
+                if (sequenceStart <= WINDOW_SIZE)
                 {
                     start = 0;
-                    windowRelative = Math.Max(input.Count(), sequence);
+                    windowRelative = WINDOW_SIZE - 1;
                 }
                 else
                 {
-                    start = (sequence - WINDOW_SIZE) - 2;
-                    windowRelative = sequence;
-                }
-
-                if (false)
-                {
-                    var isSequenceLessThanWindow = sequence < WINDOW_SIZE;
-                    var theoryNumber = sequence - WINDOW_SIZE;
-                    windowRelative = sequence;
-                    
-                    if (input.Count() < WINDOW_SIZE)
+                    if (framesCurrentCount <= windowRelative * 3)
                     {
-                        start = 0;
+                        start = GetZeroIfFloor((sequenceStart - WINDOW_SIZE) - WINDOW_SIZE_PADDING);
+                        windowRelative = sequenceStart - 1;
+                        if (windowRelative < 0)
+                        {
+                            Debugger.Break();
+                        }
                     }
                     else
                     {
-                        var unknownNumber = sequence - WINDOW_SIZE;
-                        if (unknownNumber > -1)
+                        start = GetZeroIfFloor((sequenceStart - WINDOW_SIZE * 3) - WINDOW_SIZE_PADDING);
+                        windowRelative = sequenceStart - 1;
+                        if (windowRelative < 0)
                         {
-                            start = Math.Min(unknownNumber, sequence);
-                        }
-                        else
-                        {
-                            start = Math.Max(unknownNumber, sequence);
-                            if (start < 0)
-                            {
-                                start = 0;
-                            }
+                            Debugger.Break();
                         }
                     }
+                 
                 }
 
                 if (windowRelative > -1)
@@ -154,11 +177,12 @@ namespace Lib
                     //  for (int i = GetZeroIfFloor(start - WINDOW_SIZE); i < windowRelative; i++)
                     for (int i = start; i < windowRelative; i++)
                     {
-                        var item = input.FirstOrDefault(p => p.Sequence == i);
+                        var item = framesCurrent.FirstOrDefault(p => p.Sequence == i);
                         if (item == null)
                         {
                             // check if incoming frame is exempt
-                            if (framesRecieved.FirstOrDefault().Type == Type.send && framesRecieved.FirstOrDefault().Sequence == i)
+                            
+                            if (frameRefStart.Type == Type.send && frameRefStart.Sequence == i)
                             {
                                 return -1;
                             }

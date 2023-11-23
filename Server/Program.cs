@@ -17,7 +17,7 @@ namespace Server
         static UdpClient serverUDP = new UdpClient(PORT_SERVER);
         static IPEndPoint SERVER_IP_ENDPOINT = new IPEndPoint(IPAddress.Any, PORT_CLIENT);
         static int i = 0;
-        static List<Frame> framesRecieved = new List<Frame>();
+        static List<Frame> framesProcessed = new List<Frame>();
 
         static void Main(string[] args)
         {
@@ -32,57 +32,57 @@ namespace Server
         static void StartAndContinueListening()
         {
             var dataRecievedRaw = serverUDP.Receive(ref SERVER_IP_ENDPOINT);
-            var frameRecieved = dataRecievedRaw.GetFrame();
-            var sequence = frameRecieved.Sequence;
-            var frameMissing = framesRecieved.HasIssueWithPriors(sequence, new[] { frameRecieved }.ToList());
+            var framesRecieved = dataRecievedRaw.GetFrames();
+            var frameRefStart = framesRecieved.FirstOrDefault();
+            var frameRefEnd = framesRecieved.LastOrDefault();
+            var sequence = frameRefStart.Sequence;
+            var frameSequenceMissing = framesProcessed.HasIssueWithPriors(framesRecieved);
             var dataSend = new Frame();
 
-            if (frameMissing != -1)
+            if (frameSequenceMissing != -1)
             {
                 if (false)
                     Debugger.Break();
-                Console.WriteLine($"REQUEST**** {frameRecieved.ToString()}");
+                Console.WriteLine($"REQUEST**** {frameRefStart.ToStringAlt()}");
                 dataSend = new Frame()
                 {
                     Type = Lib.Type.request,
-                    Sequence = frameMissing
+                    Sequence = frameSequenceMissing
                 };
 
                 serverUDP.Send(dataSend.GetAsBytes(), dataSend.GetAsBytes().Length, SERVER_IP_ENDPOINT);
             }
             else
             {
-
-                if (framesRecieved.Any(p => p.Sequence == frameRecieved.Sequence) == false)
+                if (framesProcessed.Any(p => p.Sequence == frameRefStart.Sequence) == false)
                 {
-                    framesRecieved.Add(frameRecieved);
+                    framesProcessed.AddRange(framesRecieved);
 
-                    Console.WriteLine($"INCOMING {frameRecieved.ToString()}");
+                    Console.WriteLine($"INCOMING {frameRefStart.Sequence} to {framesRecieved.GetSequenceNumberTrailer()}");
                     dataSend = new Frame()
                     {
                         Type = Lib.Type.receive,
-                        Body = "Server response ->" + i,
-                        Sequence = frameRecieved.Sequence
+                        Body = $"Server response -> for {frameRefStart.Sequence} to {framesRecieved.GetSequenceNumberTrailer()}",
+                        Sequence = framesRecieved.GetSequenceNumberTrailer()
                     };
 
                     serverUDP.Send(dataSend.GetAsBytes(), dataSend.GetAsBytes().Length, SERVER_IP_ENDPOINT);
                 }
             }
 
-            if (frameRecieved.IsLast)
+            if (frameRefEnd.IsLast)
             {
-                if (i == framesRecieved.Count)
+                if (i == framesProcessed.Count)
                 {
-                    for (int i = 0; i < frameRecieved.Sequence; i++)
+                    for (int i = 0; i < frameRefStart.Sequence; i++)
                     {
-
-                        var item = framesRecieved.FirstOrDefault(p => p.Sequence == i);
+                        var item = framesProcessed.FirstOrDefault(p => p.Sequence == i);
                         if (item == null)
                         {
                             Debugger.Break();
                         }
                     }
-                }                
+                }
             }
         }
     }

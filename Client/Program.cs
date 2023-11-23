@@ -25,9 +25,6 @@ namespace Client
         static List<Frame> framesTotal = new List<Frame>();
         static int i = 0;
         static int numberUser = (int?)20 ?? Lib.Lib.GenerateRandom(Lib.Lib.GetRandom());
-        static TimeSpan timeSpanSecond = new TimeSpan(0, 0, 1);
-        static TimeSpan timeSpanSeconds = new TimeSpan(0, 0, 2);
-        static TimeSpan timespanMs = new TimeSpan(0, 0, 0, 0, 1);
 
         static void Main(string[] args)
         {
@@ -35,35 +32,42 @@ namespace Client
             initStuff();
 
             // send first only
-            var data = framesTotal[i].GetAsBytes();
-            sendClient.Send(data, data.Length, remoteEP);
-            Console.WriteLine($"Sent packet: {framesTotal[i].ToString()}");
-            i++;
-            Thread.Sleep(timeSpanSeconds);
+            if (false)
+            {
+                var data = framesTotal[i].GetAsBytes();
+                sendClient.Send(data, data.Length, remoteEP);
+                Console.WriteLine($"Sent packet: {framesTotal[i].ToStringAlt()}");
+            }
+            else
+            {
+                SendOne(i);
+            }
+
+            // newer old logic
+            if (false)
+                i++;
+
+            Thread.Sleep(Lib.Lib.GetTimeSpanSeconds(1));
 
             while (true)
             {
                 try
-                {
+                {                 
                     if (sendClient.Available > 0) // Only read if we have some data 
                     {                           // queued in the network buffer. 
-                        var frameRecieved = sendClient.Receive(ref localEP).GetFrame();
+                        var frameReceivedAmbiguous = sendClient.Receive(ref localEP).GetFrame();
 
                         // sequence correction
-                        if (frameRecieved.Type == Lib.Type.request)
+                        if (frameReceivedAmbiguous.Type == Lib.Type.request)
                         {
-                            i = frameRecieved.Sequence;
-                            Console.WriteLine($"{frameRecieved.ToString()}|***");
+                            i = frameReceivedAmbiguous.Sequence;
+                            Console.WriteLine($"Resending {frameReceivedAmbiguous.ToStringAlt()}|***");
                         }
-                        else if (frameRecieved.Type == Lib.Type.receive)
+                        else if (frameReceivedAmbiguous.Type == Lib.Type.receive)
                         {
-                            Console.WriteLine(frameRecieved.ToString());
-                            var sequenceNumber = frameRecieved.Sequence;
+                            Console.WriteLine(frameReceivedAmbiguous.ToStringAlt());
+                            var sequenceNumber = frameReceivedAmbiguous.Sequence;
                             i = sequenceNumber + 1;
-                        }
-                        else if (frameRecieved.Type == Lib.Type.receive)
-                        {
-                            break;
                         }
 
                         SendOne(i);
@@ -71,7 +75,6 @@ namespace Client
                     else
                     {
                         SendOne(i);
-                        Thread.Sleep(Lib.Lib.GetTimeSpanMs(25 * WINDOW_SIZE));
                     }
                 }
                 catch (Exception ex)
@@ -81,7 +84,7 @@ namespace Client
 
                 // old logic
                 if (false)
-                    Thread.Sleep(timeSpanSeconds);
+                    Thread.Sleep(Lib.Lib.GetTimeSpanSeconds(1));
 
                 if (i == framesTotal.Count)
                 {
@@ -97,28 +100,38 @@ namespace Client
             {
                 // old logic
                 if (false)
-                    Thread.Sleep(timeSpanSeconds);
+                    Thread.Sleep(Lib.Lib.GetTimeSpanSeconds(1));
                 var random = Lib.Lib.GenerateRandom(GetRandom());
+                var iEnd = WINDOW_SIZE;
+                var remainder = framesTotal.Count() % WINDOW_SIZE;
+                if (i == framesTotal.Count() - remainder)
+                {
+                    iEnd = remainder;
+                }
+
+                var frameReference = framesTotal.GetRange(i, iEnd);
+                var data = frameReference.GetAsBytes();
 
                 // if we fail random
                 if (random < numberUser)
                 {
-                    //  to {framesTotal[i].ToString()}
-                    var message = $"\r\nLost packet: {framesTotal[i].ToString()}\r\n";
+                    var message = $"\r\nLost packet: {frameReference.ToStringAlt()}\r\n";
                     Console.WriteLine(message);
                     result = false;
-                    Thread.Sleep(Lib.Lib.GetTimeSpanMs(200));
+                    Thread.Sleep(Lib.Lib.GetTimeSpanSeconds(1));
                 }
                 else
                 {
-                    var data = framesTotal[i].GetAsBytes();
                     sendClient.Send(data, data.Length, remoteEP);
-                    Console.WriteLine($"Sent packet: {data.GetFrame().ToString()}");
-                    result = true;                  
+                    Console.WriteLine($"Sent packet: {data.GetFrames().ToStringAlt()}");
+                    result = true;
                     Thread.Sleep(Lib.Lib.GetTimeSpanMs(25 * WINDOW_SIZE));
                 }
 
-                i++;
+                // newer old logic
+                if (false)
+                    i++;
+
                 return result;
             }
 
@@ -151,11 +164,11 @@ namespace Client
             if (frameRecieved.Type == Lib.Type.request)
             {
                 i = frameRecieved.Sequence;
-                Console.WriteLine($"{frameRecieved.ToString()}|***");
+                Console.WriteLine($"{frameRecieved.ToStringAlt()}|***");
             }
             else if (frameRecieved.Type == Lib.Type.receive)
             {
-                Console.WriteLine(frameRecieved.ToString());
+                Console.WriteLine(frameRecieved.ToStringAlt());
                 var sequenceNumber = frameRecieved.Sequence;
                 i = sequenceNumber + 1;
             }
@@ -178,7 +191,8 @@ namespace Client
             {
                 dir = Directory.GetParent(dir.FullName);
             }
-            var paths = new string[] { dir.ToString(), "COSC635_P2_short.txt" };
+            var @short = false ? "_short" : "_DataSent";
+            var paths = new string[] { dir.ToString(), $"COSC635_P2{@short}.txt" };
             var target = Path.Combine(paths);
             Console.WriteLine(target);
             using (var _streamReader = new StreamReader(target))
