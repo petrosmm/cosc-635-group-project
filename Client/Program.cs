@@ -158,18 +158,18 @@ namespace Client
         {
             UdpClient c = (UdpClient)ar.AsyncState;
             IPEndPoint receivedIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
-            var frameRecieved = c.EndReceive(ar, ref receivedIpEndPoint).GetFrame();
+            var frameReceived = c.EndReceive(ar, ref receivedIpEndPoint).GetFrame();
 
             // sequence correction
-            if (frameRecieved.Type == Lib.Type.request)
+            if (frameReceived.Type == Lib.Type.request)
             {
-                i = frameRecieved.Sequence;
-                Console.WriteLine($"{frameRecieved.ToStringAlt()}|***");
+                i = frameReceived.Sequence;
+                Console.WriteLine($"{frameReceived.ToStringAlt()}|***");
             }
-            else if (frameRecieved.Type == Lib.Type.receive)
+            else if (frameReceived.Type == Lib.Type.receive)
             {
-                Console.WriteLine(frameRecieved.ToStringAlt());
-                var sequenceNumber = frameRecieved.Sequence;
+                Console.WriteLine(frameReceived.ToStringAlt());
+                var sequenceNumber = frameReceived.Sequence;
                 i = sequenceNumber + 1;
             }
 

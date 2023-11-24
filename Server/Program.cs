@@ -31,55 +31,69 @@ namespace Server
 
         static void StartAndContinueListening()
         {
-            var dataRecievedRaw = serverUDP.Receive(ref SERVER_IP_ENDPOINT);
-            var framesRecieved = dataRecievedRaw.GetFrames();
-            var frameRefStart = framesRecieved.FirstOrDefault();
-            var frameRefEnd = framesRecieved.LastOrDefault();
-            var sequence = frameRefStart.Sequence;
-            var frameSequenceMissing = framesProcessed.HasIssueWithPriors(framesRecieved);
-            var dataSend = new Frame();
-
-            if (frameSequenceMissing != -1)
+            var dataReceivedRaw = serverUDP.Receive(ref SERVER_IP_ENDPOINT);
+            var bytesCOunt = dataReceivedRaw.Length;
+            var framesReceived = new List<Frame>();
+            try
             {
-                if (false)
-                    Debugger.Break();
-                Console.WriteLine($"REQUEST**** {frameRefStart.ToStringAlt()}");
-                dataSend = new Frame()
-                {
-                    Type = Lib.Type.request,
-                    Sequence = frameSequenceMissing
-                };
-
-                serverUDP.Send(dataSend.GetAsBytes(), dataSend.GetAsBytes().Length, SERVER_IP_ENDPOINT);
+                framesReceived = dataReceivedRaw.GetFrames();
+            } catch (Exception ex)
+            {
+                framesReceived = new List<Frame>();
+                Console.WriteLine(ex.InnerException?.Message ?? ex.Message);
+              
             }
-            else
+            
+            if (framesReceived.Any())
             {
-                if (framesProcessed.Any(p => p.Sequence == frameRefStart.Sequence) == false)
-                {
-                    framesProcessed.AddRange(framesRecieved);
+                var frameRefStart = framesReceived.FirstOrDefault();
+                var frameRefEnd = framesReceived.LastOrDefault();
+                var sequence = frameRefStart.Sequence;
+                var frameSequenceMissing = framesProcessed.HasIssueWithPriors(framesReceived);
+                var dataSend = new Frame();
 
-                    Console.WriteLine($"INCOMING {frameRefStart.Sequence} to {framesRecieved.GetSequenceNumberTrailer()}");
+                if (frameSequenceMissing != -1)
+                {
+                    if (false)
+                        Debugger.Break();
+                    Console.WriteLine($"REQUEST**** {frameRefStart.ToStringAlt()}");
                     dataSend = new Frame()
                     {
-                        Type = Lib.Type.receive,
-                        Body = $"Server response -> for {frameRefStart.Sequence} to {framesRecieved.GetSequenceNumberTrailer()}",
-                        Sequence = framesRecieved.GetSequenceNumberTrailer()
+                        Type = Lib.Type.request,
+                        Sequence = frameSequenceMissing
                     };
 
                     serverUDP.Send(dataSend.GetAsBytes(), dataSend.GetAsBytes().Length, SERVER_IP_ENDPOINT);
                 }
-            }
-
-            if (frameRefEnd.IsLast)
-            {
-                if (i == framesProcessed.Count)
+                else
                 {
-                    for (int i = 0; i < frameRefStart.Sequence; i++)
+                    if (framesProcessed.Any(p => p.Sequence == frameRefStart.Sequence) == false)
                     {
-                        var item = framesProcessed.FirstOrDefault(p => p.Sequence == i);
-                        if (item == null)
+                        framesProcessed.AddRange(framesReceived);
+
+                        Console.WriteLine($"INCOMING {frameRefStart.Sequence} to {framesReceived.GetSequenceNumberTrailer()}");
+                        dataSend = new Frame()
                         {
-                            Debugger.Break();
+                            Type = Lib.Type.receive,
+                            Body = $"Server response -> for {frameRefStart.Sequence} to {framesReceived.GetSequenceNumberTrailer()}",
+                            Sequence = framesReceived.GetSequenceNumberTrailer()
+                        };
+
+                        serverUDP.Send(dataSend.GetAsBytes(), dataSend.GetAsBytes().Length, SERVER_IP_ENDPOINT);
+                    }
+                }
+
+                if (frameRefEnd.IsLast)
+                {
+                    if (i == framesProcessed.Count)
+                    {
+                        for (int i = 0; i < frameRefStart.Sequence; i++)
+                        {
+                            var item = framesProcessed.FirstOrDefault(p => p.Sequence == i);
+                            if (item == null)
+                            {
+                                Debugger.Break();
+                            }
                         }
                     }
                 }
