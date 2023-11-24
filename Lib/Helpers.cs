@@ -12,10 +12,13 @@ namespace Lib
 {
     public static class Lib
     {
+
         static Random random = new Random();
         public static int PORT_SERVER = 3000;
         public static int PORT_CLIENT = 49999;
-        public static int WINDOW_SIZE = 100;
+        static int OS = (int)Environment.OSVersion.Platform;
+        public static int WINDOW_SIZE_INTERNAL = 100; 
+        public static int WINDOW_SIZE = (OS == 4) || (OS == 128) ? Math.Min(WINDOW_SIZE_INTERNAL, 80) : WINDOW_SIZE_INTERNAL;
         public static int WINDOW_SIZE_SEND = 
             WINDOW_SIZE - 1 <= 0 
             ? 1 : WINDOW_SIZE - 1;
