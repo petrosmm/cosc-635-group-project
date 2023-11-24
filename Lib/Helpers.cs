@@ -151,7 +151,7 @@ namespace Lib
                 }
                 else
                 {
-                    if (framesCurrentCount <= windowRelative * 3)
+                    if (framesCurrentCount <= WINDOW_SIZE * 3)
                     {
                         start = GetZeroIfFloor((sequenceStart - WINDOW_SIZE) - WINDOW_SIZE_PADDING);
                         windowRelative = sequenceStart - 1;
