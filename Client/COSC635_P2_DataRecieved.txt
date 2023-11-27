@@ -1,3 +1,0 @@
-How long it took to transmit data file: 50023 milliseconds
-How many total protocol data units sent: 451089 bytes
-How many lost packets: 17
