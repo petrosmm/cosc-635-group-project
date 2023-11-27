@@ -37,13 +37,14 @@ namespace Server
             try
             {
                 framesReceived = dataReceivedRaw.GetFrames();
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 framesReceived = new List<Frame>();
                 Console.WriteLine(ex.InnerException?.Message ?? ex.Message);
-              
+
             }
-            
+
             if (framesReceived.Any())
             {
                 var frameRefStart = framesReceived.FirstOrDefault();

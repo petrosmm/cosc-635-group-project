@@ -25,14 +25,14 @@ namespace Client
         static List<Frame> framesTotal = new List<Frame>();
         static int i = 0;
         static int numberUser = (int?)20 ?? Lib.Lib.GenerateRandom(Lib.Lib.GetRandom());
-    static int framesSentCount = 0;
-    static int numLostPackets = 0;
-    static DateTime startTime = DateTime.Now;
+        static int framesSentCount = 0;
+        static int numLostPackets = 0;
+        static DateTime startTime = DateTime.Now;
 
-    static void Main(string[] args)
+        static void Main(string[] args)
         {
             PrepareFrames();
-            initStuff();
+            InitStuff();
 
             // send first only
             if (false)
@@ -55,7 +55,7 @@ namespace Client
             while (true)
             {
                 try
-                {                 
+                {
                     if (sendClient.Available > 0) // Only read if we have some data 
                     {                           // queued in the network buffer. 
                         var frameReceivedAmbiguous = sendClient.Receive(ref localEP).GetFrame();
@@ -74,11 +74,11 @@ namespace Client
                         }
 
                         SendOne(i);
-          }
+                    }
                     else
                     {
                         SendOne(i);
-          }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -91,19 +91,20 @@ namespace Client
 
                 if (i == framesTotal.Count)
                 {
-          int ms = (int)DateTime.Now.Subtract(startTime).TotalMilliseconds;
+                    int ms = (int)DateTime.Now.Subtract(startTime).TotalMilliseconds;
 
-          string[] lines = { "How long it took to transmit data file: " + ms + " milliseconds", "How many total protocol data units sent: " + framesSentCount + " bytes", "How many lost packets: " + numLostPackets };
+                    string[] lines = { "How long it took to transmit data file: " + ms + " milliseconds", "How many total protocol data units sent: " + framesSentCount + " bytes", "How many lost packets: " + numLostPackets };
 
-          string docPath =
-            System.IO.Directory.GetParent(System.IO.Directory.GetParent(Environment.CurrentDirectory).FullName).FullName;
+                    string docPath =
+                      System.IO.Directory.GetParent(System.IO.Directory.GetParent(Environment.CurrentDirectory).FullName).FullName;
 
-          using (StreamWriter outputFile = new StreamWriter(Path.Combine(docPath, "COSC635_P2_DataRecieved.txt")))
-          {
-            foreach (string line in lines)
-              outputFile.WriteLine(line);
-          }
-          Debugger.Break();
+                    using (StreamWriter outputFile = new StreamWriter(Path.Combine(docPath, "COSC635_P2_DataReceived.txt")))
+                    {
+                        foreach (string line in lines)
+                            outputFile.WriteLine(line);
+                    }
+
+                    Console.ReadLine();
                 }
             }
         }
@@ -131,7 +132,7 @@ namespace Client
                 if (random < numberUser)
                 {
                     var message = $"\r\nLost packet: {frameReference.ToStringAlt()}\r\n";
-          numLostPackets++;
+                    numLostPackets++;
                     Console.WriteLine(message);
                     result = false;
                     Thread.Sleep(Lib.Lib.GetTimeSpanSeconds(1));
@@ -140,7 +141,7 @@ namespace Client
                 {
                     sendClient.Send(data, data.Length, remoteEP);
                     Console.WriteLine($"Sent packet: {data.GetFrames().ToStringAlt()}");
-                    framesSentCount+=data.Length;
+                    framesSentCount += data.Length;
                     result = true;
                     Thread.Sleep(Lib.Lib.GetTimeSpanMs(25 * WINDOW_SIZE));
                 }
@@ -152,53 +153,15 @@ namespace Client
                 return result;
             }
 
-      return true;
+            return true;
         }
 
-        private static void initStuff()
+        private static void InitStuff()
         {
-
             sendClient.ExclusiveAddressUse = false;
             sendClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             sendClient.Client.Bind(localEP);
-
-            // old logic
-            if (false)
-                sendClient.BeginReceive(DataReceived, sendClient);
         }
-
-        /// <summary>
-        /// old logic
-        /// </summary>
-        /// <param name="ar"></param>
-        private static void DataReceived(IAsyncResult ar)
-        {
-            UdpClient c = (UdpClient)ar.AsyncState;
-            IPEndPoint receivedIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
-            var frameReceived = c.EndReceive(ar, ref receivedIpEndPoint).GetFrame();
-
-            // sequence correction
-            if (frameReceived.Type == Lib.Type.request)
-            {
-                i = frameReceived.Sequence;
-                Console.WriteLine($"{frameReceived.ToStringAlt()}|***");
-            }
-            else if (frameReceived.Type == Lib.Type.receive)
-            {
-                Console.WriteLine(frameReceived.ToStringAlt());
-                var sequenceNumber = frameReceived.Sequence;
-                i = sequenceNumber + 1;
-            }
-
-            var sendResult = SendOne(i);
-            while (sendResult == false)
-            {
-                sendResult = SendOne(i);
-            }
-
-            c.BeginReceive(DataReceived, ar.AsyncState);
-        }
-
 
         public static void PrepareFrames()
         {
@@ -240,8 +203,8 @@ namespace Client
 
                     i++;
                 }
-        
-        Console.WriteLine("finished reading file");
+
+                Console.WriteLine("finished reading file");
             }
         }
     }
