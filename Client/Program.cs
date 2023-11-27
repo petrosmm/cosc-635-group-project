@@ -25,8 +25,11 @@ namespace Client
         static List<Frame> framesTotal = new List<Frame>();
         static int i = 0;
         static int numberUser = (int?)20 ?? Lib.Lib.GenerateRandom(Lib.Lib.GetRandom());
+    static int framesSentCount = 0;
+    static int numLostPackets = 0;
+    static DateTime startTime = DateTime.Now;
 
-        static void Main(string[] args)
+    static void Main(string[] args)
         {
             PrepareFrames();
             initStuff();
@@ -71,11 +74,11 @@ namespace Client
                         }
 
                         SendOne(i);
-                    }
+          }
                     else
                     {
                         SendOne(i);
-                    }
+          }
                 }
                 catch (Exception ex)
                 {
@@ -88,7 +91,19 @@ namespace Client
 
                 if (i == framesTotal.Count)
                 {
-                    Debugger.Break();
+          int ms = (int)DateTime.Now.Subtract(startTime).TotalMilliseconds;
+
+          string[] lines = { "How long it took to transmit data file: " + ms + " milliseconds", "How many total protocol data units sent: " + framesSentCount + " bytes", "How many lost packets: " + numLostPackets };
+
+          string docPath =
+            System.IO.Directory.GetParent(System.IO.Directory.GetParent(Environment.CurrentDirectory).FullName).FullName;
+
+          using (StreamWriter outputFile = new StreamWriter(Path.Combine(docPath, "COSC635_P2_DataRecieved.txt")))
+          {
+            foreach (string line in lines)
+              outputFile.WriteLine(line);
+          }
+          Debugger.Break();
                 }
             }
         }
@@ -116,6 +131,7 @@ namespace Client
                 if (random < numberUser)
                 {
                     var message = $"\r\nLost packet: {frameReference.ToStringAlt()}\r\n";
+          numLostPackets++;
                     Console.WriteLine(message);
                     result = false;
                     Thread.Sleep(Lib.Lib.GetTimeSpanSeconds(1));
@@ -124,6 +140,7 @@ namespace Client
                 {
                     sendClient.Send(data, data.Length, remoteEP);
                     Console.WriteLine($"Sent packet: {data.GetFrames().ToStringAlt()}");
+                    framesSentCount+=data.Length;
                     result = true;
                     Thread.Sleep(Lib.Lib.GetTimeSpanMs(25 * WINDOW_SIZE));
                 }
@@ -135,7 +152,7 @@ namespace Client
                 return result;
             }
 
-            return true;
+      return true;
         }
 
         private static void initStuff()
@@ -223,8 +240,8 @@ namespace Client
 
                     i++;
                 }
-
-                Console.WriteLine("finished reading file");
+        
+        Console.WriteLine("finished reading file");
             }
         }
     }
